@@ -40,6 +40,11 @@ import string
 sys.path.append(dirname(__file__) + "/../deps/v8/tools");
 import jsmin
 
+PY2 = sys.version_info[0] == 2
+if PY2:
+  import ConfigParser
+else:
+  from configparser import ConfigParser
 
 def ToCArray(filename, lines):
   result = []
@@ -54,7 +59,7 @@ def ToCArray(filename, lines):
     value = ord(chr)
 
     if value >= 128:
-      print 'non-ascii value ' + filename + ':' + str(row) + ':' + str(col)
+      print('non-ascii value ' + filename + ':' + str(row) + ':' + str(col))
       sys.exit(1);
 
     result.append(str(value))
@@ -100,8 +105,7 @@ def ReadLines(filename):
 
 
 def LoadConfigFrom(name):
-  import ConfigParser
-  config = ConfigParser.ConfigParser()
+  config = ConfigParser()
   config.read(name)
   return config
 
@@ -115,13 +119,13 @@ def ParseValue(string):
 
 
 def ExpandConstants(lines, constants):
-  for key, value in constants.items():
+  for key, value in list(constants.items()):
     lines = lines.replace(key, str(value))
   return lines
 
 
 def ExpandMacros(lines, macros):
-  for name, macro in macros.items():
+  for name, macro in list(macros.items()):
     start = lines.find(name + '(', 0)
     while start != -1:
       # Scan over the arguments
@@ -160,7 +164,7 @@ class TextMacro:
     self.body = body
   def expand(self, mapping):
     result = self.body
-    for key, value in mapping.items():
+    for key, value in list(mapping.items()):
         result = result.replace(key, value)
     return result
 
@@ -195,14 +199,14 @@ def ReadMacros(lines):
       macro_match = MACRO_PATTERN.match(line)
       if macro_match:
         name = macro_match.group(1)
-        args = map(string.strip, macro_match.group(2).split(','))
+        args = [s.strip() for s in macro_match.group(2).split(',')]
         body = macro_match.group(3).strip()
         macros[name] = TextMacro(args, body)
       else:
         python_match = PYTHON_MACRO_PATTERN.match(line)
         if python_match:
           name = python_match.group(1)
-          args = map(string.strip, python_match.group(2).split(','))
+          args = [s.strip() for s in  python_match.group(2).split(',')]
           body = python_match.group(3).strip()
           fun = eval("lambda " + ",".join(args) + ': ' + body)
           macros[name] = PythonMacro(args, fun)
