@@ -2,6 +2,7 @@
 
 BUILDTYPE ?= Release
 PYTHON ?= python
+NINJA ?= ninja
 DESTDIR ?=
 SIGN ?=
 PREFIX ?= /usr/local
@@ -14,6 +15,9 @@ NODE ?= ./iojs$(EXEEXT)
 NODE_EXE = iojs$(EXEEXT)
 NODE_G_EXE = iojs_g$(EXEEXT)
 
+RELEASE_MK = out/Release/build.ninja
+DEBUG_MK = out/Debug/build.ninja
+
 # Default to verbose builds.
 # To do quiet/pretty builds, run `make V=` to set V to an empty string,
 # or set the V environment variable to an empty string.
@@ -22,25 +26,29 @@ V ?= 1
 # BUILDTYPE=Debug builds both release and debug builds. If you want to compile
 # just the debug build, run `make -C out BUILDTYPE=Debug` instead.
 ifeq ($(BUILDTYPE),Release)
-all: out/Makefile $(NODE_EXE)
+all: $(RELEASE_MK) $(NODE_EXE)
 else
-all: out/Makefile $(NODE_EXE) $(NODE_G_EXE)
+all: $(DEBUG_MK) $(NODE_EXE) $(NODE_G_EXE)
 endif
 
-# The .PHONY is needed to ensure that we recursively use the out/Makefile
+# The .PHONY is needed to ensure that we recursively use the out/*/build.ninja
 # to check for changes.
 .PHONY: $(NODE_EXE) $(NODE_G_EXE)
 
-$(NODE_EXE): config.gypi out/Makefile
-	$(MAKE) -C out BUILDTYPE=Release V=$(V)
+$(NODE_EXE): config.gypi $(RELEASE_MK)
+	$(NINJA) -C out/Release/
 	ln -fs out/Release/$(NODE_EXE) $@
 
-$(NODE_G_EXE): config.gypi out/Makefile
-	$(MAKE) -C out BUILDTYPE=Debug V=$(V)
+$(NODE_G_EXE): config.gypi $(DEBUG_MK)
+	$(NINJA) -C out/Debug/
 	ln -fs out/Debug/$(NODE_EXE) $@
 
-out/Makefile: common.gypi deps/uv/uv.gyp deps/http_parser/http_parser.gyp deps/zlib/zlib.gyp deps/v8/build/toolchain.gypi deps/v8/build/features.gypi deps/v8/tools/gyp/v8.gyp node.gyp config.gypi
-	$(PYTHON) tools/gyp_node.py -f make
+$(RELEASE_MK): common.gypi deps/uv/uv.gyp deps/http_parser/http_parser.gyp deps/zlib/zlib.gyp deps/v8/build/toolchain.gypi deps/v8/build/features.gypi deps/v8/tools/gyp/v8.gyp node.gyp config.gypi
+	$(PYTHON) tools/gyn_node.py
+
+# TODO (saghul): can this be combined?
+$(DEBUG_MK): common.gypi deps/uv/uv.gyp deps/http_parser/http_parser.gyp deps/zlib/zlib.gyp deps/v8/build/toolchain.gypi deps/v8/build/features.gypi deps/v8/tools/gyp/v8.gyp node.gyp config.gypi
+	$(PYTHON) tools/gyn_node.py
 
 config.gypi: configure
 	if [ -f $@ ]; then
@@ -56,7 +64,7 @@ uninstall:
 	$(PYTHON) tools/install.py $@ '$(DESTDIR)' '$(PREFIX)'
 
 clean:
-	-rm -rf out/Makefile $(NODE_EXE) $(NODE_G_EXE) out/$(BUILDTYPE)/$(NODE_EXE) blog.html email.md
+	-rm -rf $(RELEASE_MK) $(DEBUG_MK) $(NODE_EXE) $(NODE_G_EXE) out/$(BUILDTYPE)/$(NODE_EXE) blog.html email.md
 	@if [ -d out ]; then find out/ -name '*.o' -o -name '*.a' | xargs rm -rf; fi
 	-rm -rf node_modules
 
