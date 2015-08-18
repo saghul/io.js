@@ -356,6 +356,7 @@
         'test/test-tcp-close.c',
         'test/test-tcp-close-accept.c',
         'test/test-tcp-close-while-connecting.c',
+        'test/test-tcp-create-socket-early.c',
         'test/test-tcp-connect-error-after-write.c',
         'test/test-tcp-shutdown-after-write.c',
         'test/test-tcp-flags.c',
@@ -384,6 +385,7 @@
         'test/test-timer.c',
         'test/test-tty.c',
         'test/test-udp-bind.c',
+        'test/test-udp-create-socket-early.c',
         'test/test-udp-dgram-too-big.c',
         'test/test-udp-ipv6.c',
         'test/test-udp-open.c',
@@ -426,6 +428,9 @@
             '_ALL_SOURCE',
             '_XOPEN_SOURCE=500',
           ],
+        }],
+        ['uv_library=="shared_library"', {
+          'defines': [ 'USING_UV_SHARED=1' ]
         }],
       ],
       'msvs-settings': {
@@ -478,7 +483,10 @@
             'test/runner-unix.c',
             'test/runner-unix.h',
           ]
-        }]
+        }],
+        ['uv_library=="shared_library"', {
+          'defines': [ 'USING_UV_SHARED=1' ]
+        }],
       ],
       'msvs-settings': {
         'VCLinkerTool': {

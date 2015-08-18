@@ -528,7 +528,11 @@ void fs__close(uv_fs_t* req) {
 
   VERIFY_FD(fd, req);
 
-  result = _close(fd);
+  if (fd > 2)
+    result = _close(fd);
+  else
+    result = 0;
+
   SET_REQ_RESULT(req, result);
 }
 
@@ -821,7 +825,11 @@ void fs__scandir(uv_fs_t* req) {
    * A file name is at most 256 WCHARs long.
    * According to MSDN, the buffer must be aligned at an 8-byte boundary.
    */
+#if _MSC_VER
   __declspec(align(8)) char buffer[8192];
+#else
+  __attribute__ ((aligned (8))) char buffer[8192];
+#endif
 
   STATIC_ASSERT(sizeof buffer >=
                 sizeof(FILE_DIRECTORY_INFORMATION) + 256 * sizeof(WCHAR));
@@ -1823,6 +1831,9 @@ int uv_fs_read(uv_loop_t* loop,
                unsigned int nbufs,
                int64_t offset,
                uv_fs_cb cb) {
+  if (bufs == NULL || nbufs == 0)
+    return UV_EINVAL;
+
   uv_fs_req_init(loop, req, UV_FS_READ, cb);
 
   req->file.fd = fd;
@@ -1856,6 +1867,9 @@ int uv_fs_write(uv_loop_t* loop,
                 unsigned int nbufs,
                 int64_t offset,
                 uv_fs_cb cb) {
+  if (bufs == NULL || nbufs == 0)
+    return UV_EINVAL;
+
   uv_fs_req_init(loop, req, UV_FS_WRITE, cb);
 
   req->file.fd = fd;

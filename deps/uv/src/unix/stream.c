@@ -391,6 +391,9 @@ int uv__stream_open(uv_stream_t* stream, int fd, int flags) {
   int enable;
 #endif
 
+  if (!(stream->io_watcher.fd == -1 || stream->io_watcher.fd == fd))
+    return -EBUSY;
+
   assert(fd >= 0);
   stream->flags |= flags;
 
@@ -734,19 +737,6 @@ static int uv__handle_fd(uv_handle_t* handle) {
     default:
       return -1;
   }
-}
-
-static int uv__getiovmax() {
-#if defined(IOV_MAX)
-  return IOV_MAX;
-#elif defined(_SC_IOV_MAX)
-  static int iovmax = -1;
-  if (iovmax == -1)
-    iovmax = sysconf(_SC_IOV_MAX);
-  return iovmax;
-#else
-  return 1024;
-#endif
 }
 
 static void uv__write(uv_stream_t* stream) {
